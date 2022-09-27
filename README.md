@@ -2,7 +2,7 @@
 
 ## Topics
 
-1. How to use custom version of the [WebXR emulator](https://github.com/csc495-vr-f2022/WebXR-emulator-extension)
+1. How to use custom version of the [WebXR emulator](https://github.com/illusioneering/WebXR-emulator-extension)
 2. Including an update() function in the main loop
 3. Reading controller input using polling
 4. Viewing the debug console on the Quest
