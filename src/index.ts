@@ -22,7 +22,7 @@ import { Logger } from "@babylonjs/core/Misc/logger";
 import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 
 // Physics
-import * as Cannon from "cannon"
+import * as Cannon from "cannon";
 import { CannonJSPlugin } from "@babylonjs/core/Physics/Plugins/cannonJSPlugin";
 import { PhysicsImpostor } from "@babylonjs/core/Physics/physicsImpostor";
 import "@babylonjs/core/Physics/physicsEngineComponent";
@@ -124,8 +124,6 @@ class Game
         // Assigns the web XR camera to a member variable
         this.xrCamera = xrHelper.baseExperience.camera;
 
-        this.scene.enablePhysics(new Vector3(0, -9.81, 0), new CannonJSPlugin(undefined, undefined, Cannon));
-
         xrHelper.input.onControllerAddedObservable.add((inputSource) => {
 
             if(inputSource.uniqueId.endsWith("left")) 
@@ -138,11 +136,16 @@ class Game
             }  
         });
 
+
+        this.scene.enablePhysics(new Vector3(0, -9.81, 0), new CannonJSPlugin(undefined, undefined, Cannon));
+
         // Create an invisible ground for physics collisions and teleportation
         xrHelper.teleportation.addFloorMesh(environment!.ground!);
         environment!.ground!.isVisible = false;
         environment!.ground!.position = new Vector3(0, -.05, 0);
-
+        environment!.ground!.setParent(null);
+        environment!.ground!.physicsImpostor = 
+            new PhysicsImpostor(environment!.ground!, PhysicsImpostor.BoxImpostor, {mass:0, ignoreParent: true, friction: 0.5, restitution: 0.7}, this.scene);
 
         // The assets manager can be used to load multiple assets
         var assetsManager = new AssetsManager(this.scene);
@@ -165,7 +168,12 @@ class Game
             // Search through the loaded meshes
             worldTask.loadedMeshes.forEach((mesh) => {
 
-                if(mesh.parent?.name == "Props")
+                if(mesh.name == "rpgpp_lt_table_01")
+                {
+                    mesh.setParent(null);
+                    mesh.physicsImpostor = new PhysicsImpostor(mesh, PhysicsImpostor.BoxImpostor, {mass: 0}, this.scene);
+                }
+                else if(mesh.parent?.name == "Props")
                 {
                     this.grabbableObjects.push(mesh);
                     mesh.setParent(null);
@@ -302,10 +310,26 @@ class Game
             if(component?.pressed)
             {
                 Logger.Log("right squeeze pressed");
+
+                for(var i = 0; i < this.grabbableObjects.length && !this.rightGrabbedObject; i++)
+                {
+                    if(this.rightController!.grip!.intersectsMesh(this.grabbableObjects[i], true))
+                    {
+                        this.rightGrabbedObject = this.grabbableObjects[i];
+                        this.rightGrabbedObject.physicsImpostor?.sleep();
+                        this.rightGrabbedObject!.setParent(this.rightController!.grip!);
+                    }
+                }
             }
             else
             {
                 Logger.Log("right squeeze released");
+                
+                if(this.rightGrabbedObject){
+                    this.rightGrabbedObject.setParent(null);
+                    this.rightGrabbedObject.physicsImpostor?.wakeUp();
+                    this.rightGrabbedObject = null;
+                }
 
             }
         }  
